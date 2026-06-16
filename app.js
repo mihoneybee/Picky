@@ -1,321 +1,277 @@
-// Banco de dados simulado com os jantares mais leves e descontraídos
-const state = {
-    profiles: [
-        { 
-            id: 'mel', name: 'Mel', 
-            goal: 'Emagrecimento / Adequação de IMC (165cm, 87kg)',
-            preferences: ['Comidas leves à noite', 'Carnes específicas', 'Frutas vermelhas'],
-            restrictions: ['Excesso de carboidratos simples', 'Gorduras saturadas']
-        },
-        { 
-            id: 'gean', name: 'Gean', 
-            goal: 'Hipertrofia / Firmeza de Pele (Foco Proteico)',
-            preferences: ['Creme de leite', 'Batata palha', 'Alta ingestão de carne e frango'],
-            restrictions: ['Refeições com baixa proteína']
-        },
-        { 
-            id: 'nicole', name: 'Nicole', 
-            goal: 'Manutenção / Alta Seletividade',
-            preferences: ['Creme de leite', 'Batata palha', 'Pratos tradicionais saborosos'],
-            restrictions: ['Vegetais amargos', 'Texturas estranhas na carne']
-        }
-    ],
-    schedule: [
-        {
-            day: 'Segunda-feira',
-            lunch: {
-                name: 'Estrogonoff de Patinho Magro',
-                instructions: 'Panela única: Patinho em iscas com creme de leite leve para garantir o sabor sem pesar a base.',
-                portions: {
-                    mel: '130g de estrogonoff + 2 colheres de arroz + salada de folhas.',
-                    gean: '200g de estrogonoff + bastante arroz branco + batata doce.',
-                    nicole: 'Estrogonoff com arroz branco e batata palha por cima.'
-                }
-            },
-            dinner: {
-                name: 'Noite da Crepioca/Tapioca Recheada',
-                instructions: 'Base: Gomas prontas na frigideira com recheio de frango desfiado temperado. Refeição leve e descontraída.',
-                portions: {
-                    mel: '1 crepioca fina com bastante recheio de frango e salada ao lado.',
-                    gean: '2 tapiocas grossas bem recheadas com frango e 2 ovos extras.',
-                    nicole: '1 tapioca com frango desfiado e bastante queijo/requeijão derretido.'
-                }
-            }
-        },
-        {
-            day: 'Terça-feira',
-            lunch: {
-                name: 'Iscas de Carne Acebolada com Purê',
-                instructions: 'Panela única: Filé de patinho limpo e purê de mandioca cremoso.',
-                portions: {
-                    mel: 'Carne acebolada + brócolis (evitar excesso do purê).',
-                    gean: 'Porção grande de carne + purê de mandioca abundante.',
-                    nicole: 'Carne acebolada limpa + purê com queijo misturado.'
-                }
-            },
-            dinner: {
-                name: 'Sopa Cremosa de Abóbora com Carne',
-                instructions: 'Base: Caldo leve de abóbora batida acompanhado de carne desfiada. Ideal para comer juntos sem pesar.',
-                portions: {
-                    mel: 'Porção normal de sopa (sem pães de acompanhamento).',
-                    gean: 'Tigela grande acompanhada de 2 fatias de pão integral e ovos.',
-                    nicole: 'Sopa acompanhada de croutons de pão e queijo parmesão ralado na hora.'
-                }
-            }
-        }
-    ],
-    shoppingList: {
-        'Açougue / Proteínas': ['Patinho moído ou em iscas (2.5 kg)', 'Peito de frango desfiado (3.0 kg)', 'Ovos (3 dúzias)', 'Whey Protein (Gean)'],
-        'Hortifruti / Legumes': ['Abóbora Cabotiá (1 unidade)', 'Mandioca limpa (1.0 kg)', 'Mix de folhas verdes', 'Brócolis', 'Cebola e Alho'],
-        'Laticínios / Frios': ['Creme de leite leve (4 caixas)', 'Requeijão light', 'Queijo Muçarela/Parmesão (Nicole)', 'Goma de Tapioca'],
-        'Mercearia / Secos': ['Arroz integral', 'Arroz branco', 'Batata palha (Nicole)', 'Croutons/Pão integral']
-    }
+// --- 1. INICIALIZAÇÃO E SEGURANÇA ---
+// Puxa as credenciais do seu arquivo config.js (que não vai para o GitHub)
+const supabaseUrl = CONFIG.SUPABASE_URL;
+const supabaseKey = CONFIG.SUPABASE_KEY;
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+const GEMINI_KEY = CONFIG.GEMINI_KEY;
+
+// O estado agora começa vazio e será preenchido pelo Supabase
+let state = {
+    profiles: [],
+    schedule: []
 };
 
-// Inicialização baseada na página atual
-document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('schedule-container')) renderIndex();
-    if (document.getElementById('profiles-container')) renderProfiles();
+// Quando a página carrega, decide o que buscar e renderizar
+document.addEventListener('DOMContentLoaded', async () => {
+    await carregarPerfisDoBanco();
+    
+    // Se estiver na página inicial (index.html)
+    if (document.getElementById('schedule-container')) {
+        await carregarCardapioDoBanco();
+        renderIndex();
+        renderSimpleWeekly();
+        setupTabs();
+    }
+    
+    // Se estiver na página de perfis (perfil.html)
+    if (document.getElementById('profiles-container')) {
+        renderProfiles();
+    }
 });
 
-// Funções da página index.html
-function renderIndex() {
-    const scheduleContainer = document.getElementById('schedule-container');
-    const shoppingContainer = document.getElementById('shopping-container');
+// --- 2. COMUNICAÇÃO COM O BANCO DE DADOS (SUPABASE) ---
 
-    // Renderizar Cronograma
-    state.schedule.forEach(day => {
-        let html = `<div class="timeline-card">
-            <h3 style="margin-bottom: 16px; border-bottom: 2px solid var(--bg-color); padding-bottom: 8px;">${day.day}</h3>`;
-        
-        // Almoço
-        html += `
-            <div style="margin-bottom: 20px;">
-                <span class="meal-type">☀️ Almoço</span>
-                <h4 class="meal-title">${day.lunch.name}</h4>
-                <p class="meal-instructions"><strong>A Base:</strong> ${day.lunch.instructions}</p>
-                <div class="portions-grid">
-                    <div class="portion-box"><strong>Mel:</strong> ${day.lunch.portions.mel}</div>
-                    <div class="portion-box"><strong>Gean:</strong> ${day.lunch.portions.gean}</div>
-                    <div class="portion-box"><strong>Nicole:</strong> ${day.lunch.portions.nicole}</div>
-                </div>
-            </div>`;
-            
-        // Jantar (Leve)
-        html += `
-            <div>
-                <span class="meal-type" style="color: #6366f1;">🌙 Jantar Leve / Lanche</span>
-                <h4 class="meal-title">${day.dinner.name}</h4>
-                <p class="meal-instructions"><strong>A Base:</strong> ${day.dinner.instructions}</p>
-                <div class="portions-grid">
-                    <div class="portion-box"><strong>Mel:</strong> ${day.dinner.portions.mel}</div>
-                    <div class="portion-box"><strong>Gean:</strong> ${day.dinner.portions.gean}</div>
-                    <div class="portion-box"><strong>Nicole:</strong> ${day.dinner.portions.nicole}</div>
-                </div>
-            </div>
-        </div>`;
-        
-        scheduleContainer.innerHTML += html;
-    });
-
-    // Renderizar Lista de Compras
-    for (const [category, items] of Object.entries(state.shoppingList)) {
-        let itemsHtml = items.map(item => `<li style="margin-bottom: 6px; margin-left: 20px;">${item}</li>`).join('');
-        shoppingContainer.innerHTML += `
-            <div style="margin-bottom: 20px;">
-                <h4 style="text-transform: uppercase; font-size: 14px; color: var(--text-secondary); margin-bottom: 10px;">${category}</h4>
-                <ul style="list-style-type: square; color: var(--text-primary); font-size: 15px;">
-                    ${itemsHtml}
-                </ul>
-            </div>
-        `;
+async function carregarPerfisDoBanco() {
+    // Busca os perfis
+    const { data: perfis, error: errPerfis } = await supabase.from('profiles').select('*');
+    // Busca as preferências associadas
+    const { data: preferencias, error: errPrefs } = await supabase.from('user_preferences').select('*');
+    
+    if (perfis) {
+        // Monta o objeto agrupando o perfil com suas preferências
+        state.profiles = perfis.map(p => {
+            const userPrefs = preferencias ? preferencias.filter(pref => pref.user_id === p.id).map(pref => pref.preference) : [];
+            return {
+                id: p.id,
+                name: p.name,
+                goal: p.goal || 'Objetivo não definido',
+                preferences: userPrefs,
+                restrictions: [] // As restrições complexas ficam para uma V2 devido à relação com a tabela de ingredientes
+            };
+        });
     }
 }
 
-// --- FUNÇÕES DA PÁGINA PERFIL.HTML ---
-function renderProfiles() {
-    const profilesContainer = document.getElementById('profiles-container');
-    profilesContainer.innerHTML = ''; // Limpa antes de re-renderizar
-    
-    state.profiles.forEach(profile => {
-        const prefTags = profile.preferences.map(p => `<span class="tag">${p}</span>`).join('');
-        const restTags = profile.restrictions.map(r => `<span class="tag danger">${r}</span>`).join('');
-        
-        profilesContainer.innerHTML += `
-            <div class="card">
-                <h3 style="font-size: 20px; margin-bottom: 4px;">${profile.name}</h3>
-                <p style="color: var(--accent); font-weight: 600; font-size: 14px; margin-bottom: 16px;">Objetivo: ${profile.goal}</p>
-                
-                <div style="margin-bottom: 16px;">
-                    <strong style="display: block; font-size: 14px; margin-bottom: 4px;">Gostos / Preferências:</strong>
-                    ${prefTags || '<span class="tag">Nenhuma</span>'}
-                </div>
-                
-                <div>
-                    <strong style="display: block; font-size: 14px; margin-bottom: 4px;">Restrições / Vetos:</strong>
-                    ${restTags || '<span class="tag">Nenhuma</span>'}
-                </div>
-                
-                <button class="btn" onclick="openEditModal('${profile.id}')" style="width: 100%; margin-top: 24px; background-color: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color);">Editar ${profile.name}</button>
-            </div>
-        `;
-    });
+async function carregarCardapioDoBanco() {
+    // Busca as refeições geradas (Simulação de integração para leitura)
+    const { data: refeicoes, error } = await supabase.from('meals').select('*');
+    if (refeicoes) {
+        state.schedule = refeicoes;
+    }
 }
 
-// Lógica do Modal de Edição
-function openEditModal(userId) {
-    const profile = state.profiles.find(p => p.id === userId);
-    
-    // Preenche os campos do formulário
-    document.getElementById('edit-id').value = profile.id;
-    document.getElementById('modal-title').innerText = `Editar: ${profile.name}`;
-    document.getElementById('edit-goal').value = profile.goal;
-    document.getElementById('edit-pref').value = profile.preferences.join(', ');
-    document.getElementById('edit-rest').value = profile.restrictions.join(', ');
-
-    // Abre o modal
-    document.getElementById('edit-overlay').classList.add('active');
-    document.getElementById('edit-modal').classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('edit-overlay').classList.remove('active');
-    document.getElementById('edit-modal').classList.remove('active');
-}
-
-function saveProfile() {
+async function saveProfile() {
     const id = document.getElementById('edit-id').value;
-    const profileIndex = state.profiles.findIndex(p => p.id === id);
+    const goal = document.getElementById('edit-goal').value;
     
-    // Transforma a string separada por vírgulas de volta em um array limpo
-    const rawPrefs = document.getElementById('edit-pref').value.split(',').map(item => item.trim()).filter(Boolean);
-    const rawRests = document.getElementById('edit-rest').value.split(',').map(item => item.trim()).filter(Boolean);
+    const rawPrefs = document.getElementById('edit-pref').value
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
 
-    // Atualiza o estado global
-    state.profiles[profileIndex].goal = document.getElementById('edit-goal').value;
-    state.profiles[profileIndex].preferences = rawPrefs;
-    state.profiles[profileIndex].restrictions = rawRests;
-
-    closeModal();
-    renderProfiles(); // Atualiza a tela imediatamente
-    
-    // Aqui no futuro você colocará a chamada: await supabase.from('profiles').update({...})
-}
-
-// --- INTEGRAÇÃO DE API (Preparação para o dashboard.html) ---
-
-// 1. Conexão Supabase
-const SUPABASE_URL = 'https://omdsuzrlrcnkjohqudzw.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_[SUA_CHAVE_COMPLETA_AQUI]';
-// Para usar o client no JS puro, você adicionará via CDN no HTML:
-// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-// E iniciará assim: const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// --- FUNÇÕES DA PÁGINA PERFIL.HTML ---
-function renderProfiles() {
-    const profilesContainer = document.getElementById('profiles-container');
-    profilesContainer.innerHTML = ''; // Limpa antes de re-renderizar
-    
-    state.profiles.forEach(profile => {
-        const prefTags = profile.preferences.map(p => `<span class="tag">${p}</span>`).join('');
-        const restTags = profile.restrictions.map(r => `<span class="tag danger">${r}</span>`).join('');
-        
-        profilesContainer.innerHTML += `
-            <div class="card">
-                <h3 style="font-size: 20px; margin-bottom: 4px;">${profile.name}</h3>
-                <p style="color: var(--accent); font-weight: 600; font-size: 14px; margin-bottom: 16px;">Objetivo: ${profile.goal}</p>
-                
-                <div style="margin-bottom: 16px;">
-                    <strong style="display: block; font-size: 14px; margin-bottom: 4px;">Gostos / Preferências:</strong>
-                    ${prefTags || '<span class="tag">Nenhuma</span>'}
-                </div>
-                
-                <div>
-                    <strong style="display: block; font-size: 14px; margin-bottom: 4px;">Restrições / Vetos:</strong>
-                    ${restTags || '<span class="tag">Nenhuma</span>'}
-                </div>
-                
-                <button class="btn" onclick="openEditModal('${profile.id}')" style="width: 100%; margin-top: 24px; background-color: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color);">Editar ${profile.name}</button>
-            </div>
-        `;
-    });
-}
-
-// Lógica do Modal de Edição
-function openEditModal(userId) {
-    const profile = state.profiles.find(p => p.id === userId);
-    
-    // Preenche os campos do formulário
-    document.getElementById('edit-id').value = profile.id;
-    document.getElementById('modal-title').innerText = `Editar: ${profile.name}`;
-    document.getElementById('edit-goal').value = profile.goal;
-    document.getElementById('edit-pref').value = profile.preferences.join(', ');
-    document.getElementById('edit-rest').value = profile.restrictions.join(', ');
-
-    // Abre o modal
-    document.getElementById('edit-overlay').classList.add('active');
-    document.getElementById('edit-modal').classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('edit-overlay').classList.remove('active');
-    document.getElementById('edit-modal').classList.remove('active');
-}
-
-function saveProfile() {
-    const id = document.getElementById('edit-id').value;
-    const profileIndex = state.profiles.findIndex(p => p.id === id);
-    
-    // Transforma a string separada por vírgulas de volta em um array limpo
-    const rawPrefs = document.getElementById('edit-pref').value.split(',').map(item => item.trim()).filter(Boolean);
-    const rawRests = document.getElementById('edit-rest').value.split(',').map(item => item.trim()).filter(Boolean);
-
-    // Atualiza o estado global
-    state.profiles[profileIndex].goal = document.getElementById('edit-goal').value;
-    state.profiles[profileIndex].preferences = rawPrefs;
-    state.profiles[profileIndex].restrictions = rawRests;
-
-    closeModal();
-    renderProfiles(); // Atualiza a tela imediatamente
-    
-    // Aqui no futuro você colocará a chamada: await supabase.from('profiles').update({...})
-}
-
-// --- INTEGRAÇÃO DE API (Preparação para o dashboard.html) ---
-
-// 1. Conexão Supabase
-const SUPABASE_URL = 'https://omdsuzrlrcnkjohqudzw.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_e6mW7MwJ_qrzyfK6UyUyug_6-DVG3Gx';
-// Para usar o client no JS puro, você adicionará via CDN no HTML:
-// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-// E iniciará assim: const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// 2. Chamada Inteligente para a API do Gemini (Baseado no seu cURL)
-async function gerarCardapioComGemini() {
-    const GEMINI_KEY = 'AQ.Ab8RN6L7FRu-FPjdVCGz2Ng50v4BXhzaHaE63siejlQ2SLoPBQ';
-    // O ideal é usar a v1beta e enviar a chave como parâmetro na URL ao invés de Header
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
-
-    const promptText = `Crie um almoço com base no sistema Picky. A Mel quer emagrecer, o Gean hipertrofia, e a Nicole é seletiva. Me dê um JSON de resposta com a receita base e a porção de cada um.`;
+    const btn = document.querySelector('#edit-modal .btn');
+    const textoOriginal = btn.innerText;
+    btn.innerText = "Salvando no banco...";
 
     try {
+        // Atualiza o Objetivo
+        const { error: errorProfile } = await supabase
+            .from('profiles')
+            .update({ goal: goal })
+            .eq('id', id);
+
+        if (errorProfile) throw errorProfile;
+
+        // Atualiza as Preferências (Apaga as antigas e insere as novas)
+        await supabase.from('user_preferences').delete().eq('user_id', id);
+
+        if (rawPrefs.length > 0) {
+            const prefsToInsert = rawPrefs.map(pref => ({ user_id: id, preference: pref }));
+            const { error: errorPrefs } = await supabase.from('user_preferences').insert(prefsToInsert);
+            if (errorPrefs) throw errorPrefs;
+        }
+
+        alert("Perfil e preferências atualizados com sucesso!");
+        closeModal();
+        
+        // Recarrega do banco e atualiza a tela
+        await carregarPerfisDoBanco(); 
+        renderProfiles();
+
+    } catch (erro) {
+        console.error("Erro no Supabase:", erro);
+        alert("Erro ao salvar: " + erro.message);
+    } finally {
+        btn.innerText = textoOriginal;
+    }
+}
+
+// --- 3. INTELIGÊNCIA ARTIFICIAL (GEMINI API) ---
+
+async function gerarCardapioComGemini() {
+    const btn = document.querySelector('.card .btn');
+    const textoOriginal = btn.innerText;
+    btn.innerText = "Pensando e gerando o cardápio... (aguarde)";
+    
+    // Constrói o contexto com base no que está salvo no banco
+    let perfisTexto = state.profiles.map(p => {
+        let prefs = p.preferences.length > 0 ? p.preferences.join(', ') : 'Nenhuma específica';
+        return `- ${p.name}: Objetivo é ${p.goal}. Gostos: ${prefs}.`;
+    }).join('\n');
+
+    const promptText = `
+    Você é um nutricionista organizando um cardápio semanal para 3 moradores.
+    Perfis reais do banco de dados:
+    ${perfisTexto}
+
+    Regras Absolutas:
+    1. O almoço é a refeição principal (panela única para todos, adaptada em porções na mesa).
+    2. O jantar DEVE ser sempre leve e descontraído (ex: sopas, crepiocas, lanches de frigideira).
+    3. Retorne EXATAMENTE UM JSON válido e puro (sem blocos de código ou markdown), com o cardápio de Segunda a Domingo.
+
+    Formato exato do JSON esperado:
+    {
+      "semana": [
+        {
+          "dia": "Segunda-feira",
+          "almoco": { "nome": "...", "instrucoes": "..." },
+          "jantar": { "nome": "...", "instrucoes": "..." }
+        }
+      ]
+    }
+    `;
+
+    try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
         const resposta = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: promptText }]
-                }]
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
 
         const dados = await resposta.json();
-        console.log("Resposta da Inteligência Artificial:", dados.candidates[0].content.parts[0].text);
-        alert("Teste do Gemini concluído! Verifique o console do navegador.");
+        let jsonString = dados.candidates[0].content.parts[0].text;
+        
+        // Limpa a formatação caso a IA devolva com markdown ```json
+        jsonString = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
+        const cardapioGerado = JSON.parse(jsonString);
+
+        // Salva as refeições no banco
+        for (const dia of cardapioGerado.semana) {
+            await supabase.from('meals').insert([
+                { name: dia.almoco.nome, base_instructions: dia.almoco.instrucoes, meal_type: 'Almoço' },
+                { name: dia.jantar.nome, base_instructions: dia.jantar.instrucoes, meal_type: 'Jantar' }
+            ]);
+        }
+
+        alert("Cardápio gerado pela IA e salvo no banco de dados com sucesso!");
+        btn.innerText = textoOriginal;
         
     } catch (erro) {
-        console.error("Falha ao contatar a API do Google:", erro);
+        console.error(erro);
+        alert("Erro ao processar a inteligência artificial. Verifique o console.");
+        btn.innerText = textoOriginal;
     }
+}
+
+// --- 4. RENDERIZAÇÃO DA INTERFACE (UI) ---
+
+function setupTabs() {
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const viewSections = document.querySelectorAll('.view-section');
+
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            navButtons.forEach(b => b.classList.remove('active'));
+            viewSections.forEach(v => v.style.display = 'none');
+            
+            btn.classList.add('active');
+            const viewId = `${btn.dataset.view}-view`;
+            document.getElementById(viewId).style.display = 'block';
+        });
+    });
+}
+
+function renderIndex() {
+    const scheduleContainer = document.getElementById('schedule-container');
+    if (!scheduleContainer) return;
+    
+    // Se não tiver nada no banco ainda, exibe um aviso
+    if (state.schedule.length === 0) {
+        scheduleContainer.innerHTML = '<p style="color: var(--text-secondary);">Nenhuma refeição gerada ainda. Vá ao Dashboard e teste a IA.</p>';
+        return;
+    }
+
+    // Renderização simplificada das refeições lidas do banco
+    scheduleContainer.innerHTML = '';
+    state.schedule.forEach(meal => {
+        scheduleContainer.innerHTML += `
+            <div class="timeline-card" style="margin-bottom: 12px;">
+                <span class="meal-type">${meal.meal_type}</span>
+                <h4 class="meal-title">${meal.name}</h4>
+                <p class="meal-instructions">${meal.base_instructions}</p>
+            </div>
+        `;
+    });
+}
+
+function renderSimpleWeekly() {
+    const container = document.getElementById('simple-weekly-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const dias = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+    
+    dias.forEach(dia => {
+        container.innerHTML += `
+            <div class="card" style="padding: 16px;">
+                <h3 style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; font-size: 16px;">${dia}</h3>
+                <p style="font-size: 14px;"><strong>☀️ Almoço:</strong> ${state.schedule.length > 0 ? 'Ver Detalhes' : 'A definir'}</p>
+                <p style="font-size: 14px; margin-top: 6px;"><strong>🌙 Jantar:</strong> ${state.schedule.length > 0 ? 'Ver Detalhes' : 'A definir'}</p>
+            </div>
+        `;
+    });
+}
+
+function renderProfiles() {
+    const profilesContainer = document.getElementById('profiles-container');
+    profilesContainer.innerHTML = ''; 
+    
+    state.profiles.forEach(profile => {
+        const prefTags = profile.preferences.length > 0 
+            ? profile.preferences.map(p => `<span class="tag">${p}</span>`).join('') 
+            : '<span class="tag">Nenhuma definida</span>';
+            
+        profilesContainer.innerHTML += `
+            <div class="card">
+                <h3 style="font-size: 20px; margin-bottom: 4px;">${profile.name}</h3>
+                <p style="color: var(--accent); font-weight: 600; font-size: 14px; margin-bottom: 16px;">Objetivo: ${profile.goal}</p>
+                
+                <div style="margin-bottom: 16px;">
+                    <strong style="display: block; font-size: 14px; margin-bottom: 4px;">Preferências:</strong>
+                    ${prefTags}
+                </div>
+                
+                <button class="btn" onclick="openEditModal('${profile.id}')" style="width: 100%; margin-top: 12px; background-color: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color);">Editar ${profile.name}</button>
+            </div>
+        `;
+    });
+}
+
+function openEditModal(userId) {
+    const profile = state.profiles.find(p => p.id === userId);
+    
+    document.getElementById('edit-id').value = profile.id;
+    document.getElementById('modal-title').innerText = `Editar: ${profile.name}`;
+    document.getElementById('edit-goal').value = profile.goal;
+    document.getElementById('edit-pref').value = profile.preferences.join(', ');
+
+    document.getElementById('edit-overlay').classList.add('active');
+    document.getElementById('edit-modal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('edit-overlay').classList.remove('active');
+    document.getElementById('edit-modal').classList.remove('active');
 }
