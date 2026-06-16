@@ -1,0 +1,6 @@
+# Ignorar arquivos de configuração com chaves de API
+config.js
+
+# Ignorar pastas do sistema operacional (boa prática)
+.DS_Store
+Thumbs.db
