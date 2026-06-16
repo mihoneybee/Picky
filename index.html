@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Picky — Cronograma da Semana</title>
+    <title>Picky — Dashboard e API</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <header class="main-header">
@@ -12,36 +13,42 @@
             <h1 class="logo">Picky</h1>
         </div>
         <nav class="main-nav">
-            <a href="index.html" class="nav-link active">Cronograma e Compras</a>
+            <a href="index.html" class="nav-link">Cronograma e Compras</a>
             <a href="perfil.html" class="nav-link">Perfis e Restrições</a>
-            <a href="dashboard.html" class="nav-link">Dashboard API</a>
+            <a href="dashboard.html" class="nav-link active">Dashboard API</a>
         </nav>
     </header>
 
     <main class="content-container">
         <div class="view-header">
-            <h2>Refeições Compartilhadas</h2>
-            <p class="subtitle">Visão geral do que será feito na cozinha e como cada um vai montar o prato.</p>
+            <h2>Configurações de Sistema</h2>
+            <p class="subtitle">Gerencie as conexões com o Supabase e a API do Gemini.</p>
         </div>
 
-        <div id="schedule-container">
-            <!-- Injetado via JS -->
+        <div class="card">
+            <h3>Conexão Gemini API (Google)</h3>
+            <p class="subtitle" style="margin-bottom: 16px;">Necessário para gerar os cardápios automáticos de domingo.</p>
+            <div class="form-group">
+                <label>Chave Secreta da API</label>
+                <input type="password" class="form-control" value="Oculta no config.js" disabled>
+            </div>
+            <button class="btn" onclick="gerarCardapioComGemini()">Testar Conexão com a IA</button>
         </div>
 
-        <div class="view-header" style="margin-top: 48px;">
-            <h2>Lista de Compras</h2>
-            <p class="subtitle">Consolidado da semana para a casa</p>
-        </div>
-        
-        <div class="card" id="shopping-container">
-            <!-- Injetado via JS -->
+        <div class="card">
+            <h3>Banco de Dados (Supabase)</h3>
+            <div class="form-group">
+                <label>URL do Projeto</label>
+                <input type="text" class="form-control" value="Configurada via config.js" disabled>
+            </div>
+            <div class="form-group">
+                <label>Status de Sincronização</label>
+                <input type="text" class="form-control" value="🟢 Conectado" disabled>
+            </div>
         </div>
     </main>
 
-    <!-- Primeiro carrega a configuração -->
     <script src="config.js"></script>
-    
-    <!-- Depois carrega a lógica do app -->
     <script src="app.js"></script>
 </body>
 </html>
