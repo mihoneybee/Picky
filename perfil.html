@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Picky — Perfis</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <header class="main-header">
@@ -19,49 +20,43 @@
     </header>
 
     <main class="content-container">
-        <div class="profiles-grid" id="profiles-container">
-            </div>
-
-        <div class="modal-overlay" id="edit-overlay" onclick="closeModal()"></div>
-        <div class="modal" id="edit-modal">
-            <div class="modal-header">
-                <h3 id="modal-title">Editar Perfil</h3>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
-            </div>
-            
-            <input type="hidden" id="edit-id">
-            
-            <div class="form-group">
-                <label>Objetivo Principal</label>
-                <input type="text" id="edit-goal" class="form-control">
-            </div>
-            
-            <div class="form-group">
-                <label>Preferências (separe por vírgulas)</label>
-                <textarea id="edit-pref" class="form-control" rows="3"></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label>Restrições / Vetos (separe por vírgulas)</label>
-                <textarea id="edit-rest" class="form-control" rows="3"></textarea>
-            </div>
-            
-            <button class="btn" style="width: 100%; margin-top: 12px;" onclick="saveProfile()">Salvar Alterações</button>
-        </div>
         <div class="view-header">
             <h2>Moradores e Objetivos</h2>
             <p class="subtitle">Configurações que a Inteligência Artificial usa para gerar as porções modulares.</p>
         </div>
 
         <div class="profiles-grid" id="profiles-container">
-            <!-- Injetado via JS -->
-        </div>
+            </div>
     </main>
 
-    <!-- Primeiro carrega a configuração -->
+    <div class="modal-overlay" id="edit-overlay" onclick="closeModal()"></div>
+    <div class="modal" id="edit-modal">
+        <div class="modal-header">
+            <h3 id="modal-title">Editar Perfil</h3>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        
+        <input type="hidden" id="edit-id">
+        
+        <div class="form-group">
+            <label>Objetivo Principal</label>
+            <input type="text" id="edit-goal" class="form-control">
+        </div>
+        
+        <div class="form-group">
+            <label>Preferências (separe por vírgulas)</label>
+            <textarea id="edit-pref" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Restrições / Vetos (separe por vírgulas)</label>
+            <textarea id="edit-rest" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <button class="btn" style="width: 100%; margin-top: 12px;" onclick="saveProfile()">Salvar Alterações</button>
+    </div>
+
     <script src="config.js"></script>
-    
-    <!-- Depois carrega a lógica do app -->
     <script src="app.js"></script>
 </body>
 </html>
