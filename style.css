@@ -50,6 +50,7 @@ body {
     gap: 12px;
 }
 
+/* Links de Navegação entre páginas */
 .nav-link {
     text-decoration: none;
     padding: 8px 16px;
@@ -62,6 +63,22 @@ body {
 
 .nav-link:hover { background-color: var(--bg-color); color: var(--text-primary); }
 .nav-link.active { background-color: var(--accent-light); color: var(--accent); }
+
+/* Botões de abas na mesma página */
+.nav-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 20px;
+    transition: var(--transition);
+}
+
+.nav-btn:hover { background-color: var(--card-bg); color: var(--text-primary); }
+.nav-btn.active { background-color: var(--accent); color: white; border-color: var(--accent); }
 
 .content-container { max-width: 1100px; margin: 32px auto; padding: 0 24px; }
 .view-header { margin-bottom: 24px; }
@@ -113,6 +130,8 @@ body {
     padding: 12px; border-radius: 8px; font-size: 13px;
 }
 .portion-box strong { display: block; margin-bottom: 4px; color: var(--text-primary); }
+
+.weekly-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
 
 /* Estilos do Modal de Edição */
 .modal-overlay {
