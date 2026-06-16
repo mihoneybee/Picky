@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Picky — Dashboard e API</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <h1 class="logo">Picky</h1>
+        </div>
+        <nav class="main-nav">
+            <a href="index.html" class="nav-link">Cronograma e Compras</a>
+            <a href="perfil.html" class="nav-link">Perfis e Restrições</a>
+            <a href="dashboard.html" class="nav-link active">Dashboard API</a>
+        </nav>
+    </header>
+
+    <main class="content-container">
+        <div class="view-header">
+            <h2>Configurações de Sistema</h2>
+            <p class="subtitle">Gerencie as conexões com o Supabase e a API do Gemini.</p>
+        </div>
+
+        <div class="card">
+            <h3>Conexão Gemini API (Google)</h3>
+            <p class="subtitle" style="margin-bottom: 16px;">Necessário para gerar os cardápios automáticos de domingo.</p>
+            <div class="form-group">
+                <label>Chave Secreta da API</label>
+                <input type="password" class="form-control" value="AIzaSyB-exemplo-chave-oculta-123456" disabled>
+            </div>
+            <button class="btn">Testar Conexão com a IA</button>
+        </div>
+
+        <div class="card">
+            <h3>Banco de Dados (Supabase)</h3>
+            <div class="form-group">
+                <label>URL do Projeto</label>
+                <input type="text" class="form-control" value="https://xyzabcdef.supabase.co" disabled>
+            </div>
+            <div class="form-group">
+                <label>Status de Sincronização</label>
+                <input type="text" class="form-control" value="🟢 Conectado (Última sync: Hoje, 08:00)" disabled>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
