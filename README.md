@@ -2,6 +2,8 @@
 
 O **Picky** é um sistema web responsivo e dinâmico projetado para resolver a logística de alimentação em casas multifamiliares onde os moradores possuem objetivos nutricionais complementares e diferentes, mas compartilham a mesma cozinha e a mesma lista de compras.
 
+[Link do Projeto](https://pickyup.pages.dev)
+
 ## 🚀 Funcionalidades
 
 - **Seleção de Perfil**: Alternância instantânea entre os moradores da casa, adaptando toda a interface, horários e porções específicas.
